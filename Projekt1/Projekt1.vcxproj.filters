@@ -15,15 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\Downloads\tiny-AES-c-master\aes.cpp">
+    <ClCompile Include="aes.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Downloads\tiny-AES-c-master\cosets.cpp">
+    <ClCompile Include="cosets.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\Downloads\tiny-AES-c-master\aes.h">
+    <ClInclude Include="aes.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
