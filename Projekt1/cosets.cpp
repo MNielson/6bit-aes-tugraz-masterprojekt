@@ -2,6 +2,9 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+//disable warnings for localtime. If localtime used in threads, use localtime_s instead (on windows) or mutex otherwise
+#define _CRT_SECURE_NO_WARNINGS
+#include <ctime>
 #include <time.h>
 #include <iostream>
 #include <thread>
@@ -12,10 +15,18 @@
 #include <string>
 #include <math.h>
 #include <iomanip>
+#include <random>
 
 #define TWO_P_24 16777216
 
-#include "aes.h"
+#include "aes6bit.h"
+
+#if defined (_MSC_VER)  // Visual studio
+#define thread_local __declspec( thread )
+#elif defined (__GCC__) // GCC
+#define thread_local __thread
+#endif
+
 
 typedef struct {
 	double mean;
@@ -27,9 +38,34 @@ static uint64_t computeCoset(void);
 static void computeStatistics(uint64_t numSets, int numThreads);
 StatisticResult computeStatisticResult(std::list<uint64_t> cosets);
 void printUsage(std::string name);
+int intRand(const int & min, const int & max);
 
 std::mutex mtx;
 std::list<uint64_t> cosets;
+
+
+inline std::tm localtime_xp(std::time_t timer)
+{
+	std::tm bt{};
+#if defined(__unix__)
+	localtime_r(&timer, &bt);
+#elif defined(_MSC_VER)
+	localtime_s(&bt, &timer);
+#else
+	static std::mutex mtx;
+	std::lock_guard<std::mutex> lock(mtx);
+	bt = *std::localtime(&timer);
+#endif
+	return bt;
+}
+
+// default = "YYYY-MM-DD HH:MM:SS"
+inline std::string time_stamp(const std::string& fmt = "%F %T")
+{
+	auto bt = localtime_xp(std::time(0));
+	char buf[64];
+	return{ buf, std::strftime(buf, sizeof(buf), fmt.c_str(), &bt) };
+}
 
 
 int main(int argc, char* argv[])
@@ -45,28 +81,6 @@ int main(int argc, char* argv[])
 		int numThreads = atoi(argv[2]);
 		srand((unsigned int)time(NULL));
 		computeStatistics(numSets, numThreads);
-		/*
-		uint8_t mul2[64];
-		uint8_t mul3[64];
-		for (int i = 0; i < 64; i++)
-		{
-			mul2[i] = GalMul((uint8_t)i, (uint8_t)2);
-			mul3[i] = GalMul((uint8_t)i, (uint8_t)3);
-
-		}
-		for (int i = 0; i < 64; i++)
-		{
-
-			printf("0x%.2x, ", mul2[i]);
-
-		}
-		printf("\n\n");
-		for (int i = 0; i < 64; i++)
-		{
-			printf("0x%.2x, ", mul3[i]);
-
-		}
-		*/
 	}
 
     return 0;
@@ -89,20 +103,23 @@ static uint64_t computeCoset(void)
 {
 	
 	uint8_t* res = (uint8_t*)calloc(TWO_P_24, sizeof(uint8_t));
-
 	//create context
 	struct AES_ctx ctx;
 	uint8_t key[16];
 	uint8_t const_state[16];
 	uint8_t state[16];
+	AES6BIT aes;
 	
 	for (int i = 0; i < 16; i++)
 	{
-		key[i] = rand() & 0x3f;
-		const_state[i] = rand() & 0x3f;
+		key[i] = intRand(0, 63);
+		const_state[i] = intRand(0, 63);
+#ifdef _DEBUG
+//check key and state
+#endif
 	}
 
-	AES_init_ctx(&ctx, key);
+	aes.AES_init_ctx(&ctx, key);
 
 	//compute 2^24 sets
 	for (int i = 0; i < TWO_P_24; i++)
@@ -122,7 +139,7 @@ static uint64_t computeCoset(void)
 		state[10] = t3;
 		state[15] = t4;
 
-		AES_ECB_encrypt(&ctx, state, 5);
+		aes.AES_ECB_encrypt(&ctx, state, 5);
 #ifdef _DEBUG
 		for (int j = 0; j < 16; j++)
 		{
@@ -162,8 +179,6 @@ static uint64_t computeCoset(void)
 #ifdef _DEBUG
 	if (collisions % 8)
 		std::cerr << "Error: " << collisions << " is not a multiple of 8." << std::endl;
-	else
-		std::cout << " :) " << std::endl;
 #endif
 
 	free(res);
@@ -173,6 +188,8 @@ static uint64_t computeCoset(void)
 static void computeStatistics(uint64_t numSets, int numThreads)
 {
 	auto begin = std::chrono::high_resolution_clock::now();
+	auto startTime = time_stamp();
+
 #ifdef _DEBUG
 	std::cout << "Computing statistics with " << numSets << " sets and " << numThreads << " threads." << std::endl;
 #endif
@@ -188,24 +205,31 @@ static void computeStatistics(uint64_t numSets, int numThreads)
 			threads.at(i).join();
 	}
 	auto end = std::chrono::high_resolution_clock::now();
+	auto endTime = time_stamp();
 	std::cout << "Finished " << cosets.size() << " cosets with " << numThreads << " thread(s) in " << std::chrono::duration_cast<std::chrono::minutes>(end - begin).count() << " minutes." << std::endl;
 
-#ifdef _DEBUG
 	time_t d_seconds;
 	std::string d_filename = "debug-" + std::to_string(time(&d_seconds)) + ".txt";
 	std::ofstream d_file(d_filename, std::ofstream::out);
+
+
+	d_file << "Started " << startTime << std::endl;
+	d_file << "Started " << endTime   << std::endl;
+
+
+	d_file << "Writing " << cosets.size() << "cosets:" << std::endl;
 	for (uint64_t elem : cosets)
 	{
 		d_file << elem << std::endl;
 	}
 	d_file.close();
-#endif
+
 	StatisticResult res = computeStatisticResult(cosets);
 	
 	time_t seconds;
 	std::string filename = "results-" + std::to_string(time(&seconds)) + ".txt";
 	std::ofstream file(filename, std::ofstream::out);
-	file << "Computed from " << cosets.size() << " cosets." << std::endl;
+	file << "Computed from " << cosets.size() << " cosets" << " computed between " << startTime << " and " << endTime << "." << std::endl;
 	file << "Mean: " << res.mean << std::endl;
 	file << "Variance: " << res.variance << std::endl;
 	file << "Skew: " << res.skew << std::endl;
@@ -251,3 +275,17 @@ void printUsage(std::string name)
 	std::cout << name << " #COSETS #THREADS"<< std::endl;
 	std::cout << "Ex. "<< name << " 64 2" << std::endl;
 }
+
+/* Thread-safe function that returns a random number between min and max (inclusive).
+This function takes ~142% the time that calling rand() would take. For this extra
+cost you get a better uniform distribution and thread-safety. */
+int intRand(const int & min, const int & max) {
+	static thread_local std::mt19937* generator = nullptr;
+	std::hash<std::thread::id> hasher;
+	if (!generator)
+		generator = new std::mt19937(clock() + (unsigned int)hasher(std::this_thread::get_id()));
+	std::uniform_int_distribution<int> distribution(min, max);
+	return distribution(*generator);
+}
+
+	

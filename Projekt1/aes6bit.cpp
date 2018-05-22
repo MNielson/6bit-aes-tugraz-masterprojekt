@@ -2,7 +2,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <string.h>
-#include "aes.h"
+#include "aes6bit.h"
 
 /*****************************************************************************/
 /* Defines:                                                                  */
@@ -16,8 +16,7 @@
 /*****************************************************************************/
 /* Private variables:                                                        */
 /*****************************************************************************/
-// state - array holding the intermediate results during decryption.
-typedef uint8_t state_t[4][4];
+
 
 static const uint8_t sbox[64] = {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
@@ -111,7 +110,7 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
   }
 }
 
-void AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key)
+void AES6BIT::AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key)
 {
   KeyExpansion(ctx->RoundKey, key);
 }
@@ -119,7 +118,7 @@ void AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key)
 
 // This function adds the round key to state.
 // The round key is added to the state by an XOR function.
-static void AddRoundKey(uint8_t round,state_t* state,uint8_t* RoundKey)
+void AES6BIT::AddRoundKey(uint8_t round,state_t* state,uint8_t* RoundKey)
 {
   uint8_t i,j;
   for (i = 0; i < 4; ++i)
@@ -145,7 +144,7 @@ static void AddRoundKey(uint8_t round,state_t* state,uint8_t* RoundKey)
 
 // The SubBytes Function Substitutes the values in the
 // state matrix with values in an S-box.
-static void SubBytes(state_t* state)
+void AES6BIT::SubBytes(state_t* state)
 {
   uint8_t i, j;
   for (i = 0; i < 4; ++i)
@@ -182,7 +181,7 @@ static void SubBytes(state_t* state)
 // The ShiftRows() function shifts the rows in the state to the left.
 // Each row is shifted with different offset.
 // Offset = Row number. So the first row is not shifted.
-static void ShiftRows(state_t* state)
+void AES6BIT::ShiftRows(state_t* state)
 {
   uint8_t temp0;
   uint8_t temp1;
@@ -230,15 +229,21 @@ static void ShiftRows(state_t* state)
 }
 
 
-static void MixColumns(state_t* state)
+void AES6BIT::MixColumns(state_t* state)
 {
-  for (int i = 0; i < 4; i++){
-	  (*state)[0][i] = (uint8_t)mul2[(*state)[0][i]] ^ mul3[(*state)[1][i]] ^      (*state)[2][i]  ^      (*state)[3][i];
-	  (*state)[1][i] = (uint8_t)     (*state)[0][i]  ^ mul2[(*state)[1][i]] ^ mul3[(*state)[2][i]] ^      (*state)[3][i];
-	  (*state)[2][i] = (uint8_t)     (*state)[0][i]  ^      (*state)[1][i]  ^ mul2[(*state)[2][i]] ^ mul3[(*state)[3][i]];
-	  (*state)[3][i] = (uint8_t)mul3[(*state)[0][i]] ^      (*state)[1][i]  ^      (*state)[2][i]  ^ mul2[(*state)[3][i]];
-  }
-
+	uint8_t tstate[4][4] = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 },{ 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+	for (int i = 0; i < 4; i++){
+	  tstate[0][i] = (uint8_t) (mul2[(*state)[0][i]] ^ mul3[(*state)[1][i]] ^      (*state)[2][i]  ^      (*state)[3][i] );
+	  tstate[1][i] = (uint8_t) (     (*state)[0][i]  ^ mul2[(*state)[1][i]] ^ mul3[(*state)[2][i]] ^      (*state)[3][i] );
+	  tstate[2][i] = (uint8_t) (     (*state)[0][i]  ^      (*state)[1][i]  ^ mul2[(*state)[2][i]] ^ mul3[(*state)[3][i]]);
+	  tstate[3][i] = (uint8_t) (mul3[(*state)[0][i]] ^      (*state)[1][i]  ^      (*state)[2][i]  ^ mul2[(*state)[3][i]]);
+	}
+	
+	for (int i = 0; i < 4; i++) {
+	  for (int j = 0; j < 4; j++)
+		  (*state)[i][j] = tstate[i][j];
+	}
+  
 #ifdef _DEBUG
   for (int i = 0; i < 4; i++)
   {
@@ -252,7 +257,7 @@ static void MixColumns(state_t* state)
 }
 
 
-uint8_t GalMul(uint8_t a, uint8_t b)
+uint8_t AES6BIT::GalMul(uint8_t a, uint8_t b)
 {
 	// Galois Field (2^6) Multiplication of two Bytes
 	uint8_t p = 0;
@@ -274,7 +279,7 @@ uint8_t GalMul(uint8_t a, uint8_t b)
 
 
 // Cipher is the main function that encrypts the PlainText.
-static void Cipher(state_t* state, uint8_t* RoundKey, uint8_t rounds)
+void AES6BIT::Cipher(state_t* state, uint8_t* RoundKey, uint8_t rounds)
 {
   uint8_t round = 0;
   
@@ -302,10 +307,8 @@ static void Cipher(state_t* state, uint8_t* RoundKey, uint8_t rounds)
 
 
 
-void AES_ECB_encrypt(struct AES_ctx *ctx,const uint8_t* buf, uint8_t rounds)
+void AES6BIT::AES_ECB_encrypt(struct AES_ctx *ctx,const uint8_t* buf, uint8_t rounds)
 {
 	Cipher((state_t*)buf, ctx->RoundKey, rounds);
 }
-
-
 
