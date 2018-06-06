@@ -18,7 +18,7 @@
 #include <random>
 
 #define TWO_P_24 16777216
-
+//#define TWO_P_24 1
 #include "aes6bit.h"
 
 #if defined (_MSC_VER)  // Visual studio
@@ -114,9 +114,6 @@ static uint64_t computeCoset(void)
 	{
 		key[i] = intRand(0, 63);
 		const_state[i] = intRand(0, 63);
-#ifdef _DEBUG
-//check key and state
-#endif
 	}
 
 	aes.AES_init_ctx(&ctx, key);
@@ -139,7 +136,7 @@ static uint64_t computeCoset(void)
 		state[10] = t3;
 		state[15] = t4;
 
-		aes.AES_ECB_encrypt(&ctx, state, 5);
+		aes.AES_ECB_encrypt(&ctx, state, Nr);
 #ifdef _DEBUG
 		for (int j = 0; j < 16; j++)
 		{
@@ -177,7 +174,7 @@ static uint64_t computeCoset(void)
 		collisions += tmp;
 	}
 #ifdef _DEBUG
-	if (collisions % 8)
+	if (Nr <= 12 && collisions % 8)
 		std::cerr << "Error: " << collisions << " is not a multiple of 8." << std::endl;
 #endif
 
@@ -190,9 +187,9 @@ static void computeStatistics(uint64_t numSets, int numThreads)
 	auto begin = std::chrono::high_resolution_clock::now();
 	auto startTime = time_stamp();
 
-#ifdef _DEBUG
+
 	std::cout << "Computing statistics with " << numSets << " sets and " << numThreads << " threads." << std::endl;
-#endif
+
 
 	std::vector<std::thread> threads;
 	for (int i = 0; i < numThreads; ++i)

@@ -2,15 +2,9 @@
 #include <iostream>
 #include <stdint.h>
 #include <string.h>
-#include "aes6bit.h"
+#include <iomanip>
 
-/*****************************************************************************/
-/* Defines:                                                                  */
-/*****************************************************************************/
-// The number of columns comprising a state in AES. This is a constant in AES. Value=4
-#define Nb 4
-#define Nk 4        // The number of 32 bit words in a key.
-#define Nr 5       // The number of rounds in AES Cipher.
+#include "aes6bit.h"
 
 
 /*****************************************************************************/
@@ -44,6 +38,11 @@ static const uint8_t mul3[64] = {
 static const uint8_t Rcon[11] = {
   0x43, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x03, 0x06, 0x0C, 0x18 };
 
+/*
+// remove me
+static const uint8_t Rcon[22] = {
+	0x43, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x03, 0x06, 0x0C, 0x18, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x03, 0x06, 0x0C, 0x18 };
+*/
 /*****************************************************************************/
 /* Private functions:                                                        */
 /*****************************************************************************/
@@ -112,7 +111,16 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
 
 void AES6BIT::AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key)
 {
+
   KeyExpansion(ctx->RoundKey, key);
+#ifdef FULL_LOG
+  std::cout << "Key: " << std::endl;
+  printKey(key, 16);
+
+  std::cout << "Expanded Key: " << std::endl;
+  printKey(ctx->RoundKey, AES_keyExpSize);
+
+#endif
 }
 
 
@@ -284,7 +292,9 @@ void AES6BIT::Cipher(state_t* state, uint8_t* RoundKey, uint8_t rounds)
   uint8_t round = 0;
   
   // Add the First round key to the state before starting the rounds.
+  //printState(0, "Before AddRoundKey", state);
   AddRoundKey(0, state, RoundKey); 
+  //printState(0, "After AddRoundKey", state);
 
   
   // There will be Nr rounds.
@@ -292,17 +302,65 @@ void AES6BIT::Cipher(state_t* state, uint8_t* RoundKey, uint8_t rounds)
   // These Nr-1 rounds are executed in the loop below.
   for (round = 1; round < rounds; ++round)
   {
+#ifdef FULL_LOG
+	printState(round, "Before SubBytes", state);
+#endif
     SubBytes(state);
-    ShiftRows(state);
+#ifdef FULL_LOG
+	printState(round, "After SubBytes", state);
+#endif
+
+#ifdef FULL_LOG
+	printState(round, "Before ShiftRows", state);
+#endif
+	ShiftRows(state);
+#ifdef FULL_LOG
+	printState(round, "After ShiftRows", state);
+#endif
+	
+#ifdef FULL_LOG
+	printState(round, "Before MixColumns", state);
+#endif
     MixColumns(state);
+#ifdef FULL_LOG
+	printState(round, "After MixColumns", state);
+#endif
+	
+#ifdef FULL_LOG
+	printState(round, "Before AddRoundKey", state);
+#endif
     AddRoundKey(round, state, RoundKey);
+#ifdef FULL_LOG
+	printState(round, "After AddRoundKey", state);
+#endif
+
   }
   
   // The last round is given below.
   // The MixColumns function is not here in the last round.
+#ifdef FULL_LOG
+  printState(rounds, "Before SubBytes", state);
+#endif
   SubBytes(state);
+#ifdef FULL_LOG
+  printState(round, "After SubBytes", state);
+#endif
+
+#ifdef FULL_LOG
+  printState(rounds, "Before ShiftRows", state);
+#endif
   ShiftRows(state);
+#ifdef FULL_LOG
+  printState(rounds, "After ShiftRows", state);
+#endif
+
+#ifdef FULL_LOG
+  //printState(rounds, "Before AddRoundKey", state);
+#endif
   AddRoundKey(rounds, state, RoundKey);
+#ifdef FULL_LOG
+  printState(rounds, "After AddRoundKey / Before Finishing", state);
+#endif
 }
 
 
@@ -312,3 +370,49 @@ void AES6BIT::AES_ECB_encrypt(struct AES_ctx *ctx,const uint8_t* buf, uint8_t ro
 	Cipher((state_t*)buf, ctx->RoundKey, rounds);
 }
 
+
+void AES6BIT::printState(state_t* state)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			/*
+			std::cout << std::showbase // show the 0x prefix
+				      << std::internal // fill between the prefix and the number
+				      << std::hex
+				      << std::setfill('0'); // fill with 0s
+					  */
+			std::cout << std::hex << static_cast<int>((*state)[i][j]) << " ";
+		}
+		std::cout << std::endl;
+	}
+}
+
+void AES6BIT::printKey(const uint8_t * key, int size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		/*
+		std::cout << std::showbase // show the 0x prefix
+			<< std::internal // fill between the prefix and the number
+			<< std::setw(2) << std::setfill('0'); // fill with 0s
+		*/
+		std::cout << std::hex << static_cast<int>(key[i]) << " ";
+		if ((i > 0) && ((i + 1) % 4 == 0))
+			std::cout << std::endl;
+		if ((size > 16) && (i > 0) && ((i + 1) % 16 == 0))
+			std::cout << std::endl;
+	}
+	std::cout << std::endl;
+}
+
+
+
+void AES6BIT::printState(int round, std::string step, state_t* state)
+{
+	std::cout << "Round " << round << std::endl;
+	std::cout << step << ": " << std::endl << std::endl;
+	printState(state);
+	std::cout << std::endl;
+}

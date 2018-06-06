@@ -2,11 +2,21 @@
 #define _AES6BIT_H_
 
 #include <stdint.h>
+#include <string>
+#include <sstream>
+
 
 #define AES128 1
 #define AES_BLOCKLEN 16 //Block length in bytes AES is 128b block only
 #define AES_KEYLEN 16   // Key length in bytes
-#define AES_keyExpSize 176
+// The number of columns comprising a state in AES. This is a constant in AES. Value=4
+#define Nb 4
+#define Nk 4        // The number of 32 bit words in a key.
+#define Nr 5       // The number of rounds in AES Cipher.
+//#define AES_keyExpSize 256
+//#define AES_keyExpSize 176
+#define AES_keyExpSize 96
+
 
 // state - array holding the intermediate results during encryption.
 typedef uint8_t state_t[4][4];
@@ -32,19 +42,12 @@ public:
 	void AddRoundKey(uint8_t round, state_t* state, uint8_t* RoundKey);
 
 private:
-	
-
+	//static std::string AES6BIT::toString(state_t* state);
+	void printKey(const uint8_t* key, int size);
+	void printState(state_t* state);
+	void printState(int round, std::string step, state_t* state);
 
 };
-
-
-
-
-
-
-
-
-
 
 
 #endif //_AES6BIT_H_

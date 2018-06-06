@@ -87,20 +87,20 @@ namespace UnitTest1
 			for (int i = 0; i < 16; i++)
 				state[i] = 0;
 
-			state[ 0] = 1; //state[ 1] = 11; state[ 2] = 1; state[ 3] = 10;
-			state[ 4] = 2; //state[ 5] = 11; state[ 6] = 2; state[ 7] = 20;
-			state[ 8] = 3; //state[ 9] = 11; state[10] = 3; state[11] = 30;
-			state[12] = 4; //state[13] = 11; state[14] = 4; state[15] = 40;
+			state[ 0] = 1; state[ 1] = 11; state[ 2] = 1; state[ 3] = 10;
+			state[ 4] = 2; state[ 5] = 11; state[ 6] = 2; state[ 7] = 20;
+			state[ 8] = 3; state[ 9] = 11; state[10] = 3; state[11] = 30;
+			state[12] = 4; state[13] = 11; state[14] = 4; state[15] = 40;
 
 
 			AES6BIT aes;
 	
 			aes.MixColumns((state_t*)state);
 
-			Assert::AreEqual(state[ 0], (uint8_t) 3); //Assert::AreEqual(state[ 1], (uint8_t) 11); Assert::AreEqual(state[ 2], (uint8_t) 3);  Assert::AreEqual(state[ 3], (uint8_t)30);
-			Assert::AreEqual(state[ 4], (uint8_t) 4); //Assert::AreEqual(state[ 5], (uint8_t) 11); Assert::AreEqual(state[ 6], (uint8_t) 4);  Assert::AreEqual(state[ 7], (uint8_t)40);
-			Assert::AreEqual(state[ 8], (uint8_t) 9); //Assert::AreEqual(state[ 9], (uint8_t) 11); Assert::AreEqual(state[10], (uint8_t) 9);  Assert::AreEqual(state[11], (uint8_t)25);
-			Assert::AreEqual(state[12], (uint8_t) 10); //Assert::AreEqual(state[13], (uint8_t) 11); Assert::AreEqual(state[14], (uint8_t) 10); Assert::AreEqual(state[15], (uint8_t) 7);
+			Assert::AreEqual(state[ 0], (uint8_t)  3); Assert::AreEqual(state[ 1], (uint8_t) 11); Assert::AreEqual(state[ 2], (uint8_t) 3);  Assert::AreEqual(state[ 3], (uint8_t)30);
+			Assert::AreEqual(state[ 4], (uint8_t)  4); Assert::AreEqual(state[ 5], (uint8_t) 11); Assert::AreEqual(state[ 6], (uint8_t) 4);  Assert::AreEqual(state[ 7], (uint8_t)40);
+			Assert::AreEqual(state[ 8], (uint8_t)  9); Assert::AreEqual(state[ 9], (uint8_t) 11); Assert::AreEqual(state[10], (uint8_t) 9);  Assert::AreEqual(state[11], (uint8_t)25);
+			Assert::AreEqual(state[12], (uint8_t) 10); Assert::AreEqual(state[13], (uint8_t) 11); Assert::AreEqual(state[14], (uint8_t) 10); Assert::AreEqual(state[15], (uint8_t) 7);
 			
 		}
 		/*
