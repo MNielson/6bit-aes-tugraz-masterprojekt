@@ -21,9 +21,11 @@
   <ItemGroup>
     <ClCompile Include="aes6bit.cpp" />
     <ClCompile Include="cosets.cpp" />
+    <ClCompile Include="mt19937ar.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aes6bit.h" />
+    <ClInclude Include="mt19937a.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3751C39C-42E8-4C50-9B9C-795E280AEAA5}</ProjectGuid>

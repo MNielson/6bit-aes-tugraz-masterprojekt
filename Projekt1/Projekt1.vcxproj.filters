@@ -21,9 +21,15 @@
     <ClCompile Include="aes6bit.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="mt19937ar.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aes6bit.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="mt19937a.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

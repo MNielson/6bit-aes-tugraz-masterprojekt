@@ -18,8 +18,10 @@
 #include <random>
 
 #define TWO_P_24 16777216
+#define USE_C_RNG 0
 //#define TWO_P_24 1
 #include "aes6bit.h"
+#include "mt19937a.h"
 
 #if defined (_MSC_VER)  // Visual studio
 #define thread_local __declspec( thread )
@@ -79,7 +81,17 @@ int main(int argc, char* argv[])
 	{
 		int numSets = atoi(argv[1]);
 		int numThreads = atoi(argv[2]);
-		srand((unsigned int)time(NULL));
+		if (USE_C_RNG) 
+		{
+			srand((unsigned int)time(NULL));
+		}
+		else
+		{
+			unsigned long init[4] = { 0x123, 0x234, 0x345, 0x456 };
+			int length = 4;
+			init_by_array(init, length);
+		}
+
 		computeStatistics(numSets, numThreads);
 	}
 
@@ -112,8 +124,17 @@ static uint64_t computeCoset(void)
 	
 	for (int i = 0; i < 16; i++)
 	{
-		key[i] = intRand(0, 63);
-		const_state[i] = intRand(0, 63);
+		if (USE_C_RNG)
+		{
+			key[i]         = intRand(0, 63);
+			const_state[i] = intRand(0, 63);
+		}
+		else
+		{
+			key[i]         = (uint8_t)(genrand_int32() & 0x3F);
+			const_state[i] = (uint8_t)(genrand_int32() & 0x3F);
+		}
+		
 	}
 
 	aes.AES_init_ctx(&ctx, key);
